@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة التبويض</title>
+<style>
+  :root{
+    --pink:#f9748f;
+    --pink-dark:#f0657b;
+    --mint:#94d3ac;
+    --teal:#2b7a6b;
+    --bg:#ffe6f0;
+    --fertile:#ffe4ec;    /* الأيام الأكثر خصوبة */
+    --ovul:#ffd166;       /* يوم الإباضة */
+    --period:#c7e9ff;     /* أيام الدورة */
+    --card:#fff7f9;
+  }
+  body{
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--bg), #ffffff);
+    min-height: 100vh;
+    margin: 0;
+    color: #333;
+  }
+  header.fancy-header{
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size:42px;font-weight:700;
+    background:linear-gradient(90deg,#f78ca0,var(--pink));
+    background-clip:text;-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    text-shadow:1px 1px 2px rgba(247,140,160,.5);
+    margin-bottom:20px;user-select:none;
+  }
+  .lang-select{margin-bottom:30px;display:inline-flex;gap:15px;justify-content:center;flex-wrap:wrap;}
+  .lang-btn{
+    cursor:pointer;background-color:var(--pink);border:none;color:#fff;font-weight:600;font-size:16px;
+    padding:12px 30px;border-radius:30px;box-shadow:0 4px 10px rgba(249,116,143,.3);
+    transition:background-color .3s, transform .2s;user-select:none;min-width:120px;text-align:center;flex-shrink:0;
+  }
+  .lang-btn:hover{background-color:var(--pink-dark);transform:scale(1.05);box-shadow:0 6px 14px rgba(240,101,123,.5);}
+  h2{font-size:28px;margin-bottom:15px;user-select:none;}
+  label{display:block;margin-top:15px;font-size:18px;user-select:none;}
+  input,button{
+    padding:10px;margin:10px 0;font-size:16px;border-radius:6px;border:1.5px solid var(--pink);outline:none;
+    width:100%;max-width:300px;box-sizing:border-box;transition:border-color .3s, box-shadow .3s;
+  }
+  input:focus{border-color:var(--pink-dark);box-shadow:0 0 6px #fbb6c1;}
+  button{
+    background-color:var(--pink);color:#fff;border:none;cursor:pointer;font-weight:bold;width:150px;user-select:none;
+    border-radius:30px;box-shadow:0 4px 10px rgba(249,116,143,.3);transition:background-color .3s, transform .2s;
+  }
+  button:hover{background-color:var(--pink-dark);transform:scale(1.05);box-shadow:0 6px 14px rgba(240,101,123,.5);}
+
+  .result{margin-top:18px;color:var(--teal);font-size:18px;min-height:80px;user-select:text;}
+  .result .line{margin:6px 0;}
+  .result .fertile-line{font-size:15px;opacity:.95} /* أصغر ليظهر في سطر واحد */
+
+  #cycleNotification{
+    margin-top:12px;font-weight:bold;font-size:18px;border-radius:8px;padding:12px;display:none;max-width:320px;margin-inline:auto;
+  }
+
+  /* شارات التاريخ الدائرية */
+  .circle-date{
+    display:inline-block;background-color:#fff3f6;border:2px solid var(--pink);color:var(--pink-dark);
+    font-weight:bold;padding:8px 12px;border-radius:999px;margin:6px 4px;min-width:130px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+
+  /* التقويم */
+  .calendar-wrap{max-width:720px;margin:18px auto 6px;background:#fff;border-radius:16px;padding:16px;
+    box-shadow:0 10px 24px rgba(249,116,143,.12);}
+  .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;}
+  .cal-title{font-weight:700;}
+  .cal-grid{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap:8px;
+  }
+  .dow{font-size:13px;font-weight:bold;opacity:.75}
+  .day{
+    aspect-ratio:1 / 1; /* مربع متجاوب */
+    border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:#fafafa;box-shadow:0 1px 3px rgba(0,0,0,.04);
+    font-weight:600;
+  }
+  .day.muted{opacity:.35}
+  .day.period{background:var(--period); box-shadow:0 6px 16px rgba(61,152,255,.25);}
+  .day.fertile{background:var(--fertile);box-shadow:0 6px 16px rgba(249,116,143,.25);}
+  .day.ovul{background:var(--ovul);  box-shadow:0 6px 16px rgba(255,209,102,.35); border:2px solid #e9a600;}
+  .legend{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .legend .item{display:flex;align-items:center;gap:8px;font-size:14px;background:#fff;border-radius:999px;padding:6px 10px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .swatch{width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .swatch.period{background:var(--period)}
+  .swatch.fertile{background:var(--fertile)}
+  .swatch.ovul{background:var(--ovul)}
+
+  /* قسم السبب والنصائح */
+  #reasonSection{margin-top:16px;display:none}
+  .reason-btn{
+    background-color:#ffc7d2;color:#6b2840;padding:8px 14px;border-radius:20px;border:none;margin:6px;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .reason-btn.conceive{background-color:var(--mint);color:#11402e}
+  #adviceBox{
+    margin-top:12px;max-width:680px;margin-inline:auto;text-align:start;background:var(--card);border-radius:12px;padding:14px;display:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.06)
+  }
+  #adviceBox strong{display:block;margin-bottom:8px}
+  #adviceBox ul{margin:0;padding-inline-start:20px}
+  #adviceBox li{margin:6px 0;line-height:1.5}
+
+  .small-note{font-size:14px;color:#666;margin-top:8px}
+
+  /* اتجاه النص حسب اللغة */
+  [dir="ltr"] #adviceBox, [dir="ltr"] .small-note, [dir="ltr"] .legend .item{text-align:left}
+</style>
+</head>
+<body>
+  <header class="fancy-header">Mayan</header>
+
+  <div class="lang-select" aria-label="اختيار اللغة / Select language / Choisir la langue">
+    <button class="lang-btn" onclick="changeLang('ar')">العربية</button>
+    <button class="lang-btn" onclick="changeLang('en')">English</button>
+    <button class="lang-btn" onclick="changeLang('fr')">Français</button>
+  </div>
+
+  <h2 id="title">حاسبة التبويض</h2>
+
+  <label id="labelLastPeriod" for="lastPeriod">أول يوم من آخر دورة شهرية:</label>
+  <input type="date" id="lastPeriod" aria-describedby="labelLastPeriod" />
+
+  <label id="labelCycleLength" for="cycleLength">طول الدورة الشهرية (بالأيام):</label>
+  <input type="number" id="cycleLength" value="28" min="21" max="35" aria-describedby="labelCycleLength" />
+
+  <br />
+  <button onclick="calculateOvulation()" id="btnCalculate">احسبي الآن</button>
+
+  <!-- النتائج -->
+  <div class="result" id="result" role="region" aria-live="polite"></div>
+  <div id="cycleNotification" role="alert" aria-live="assertive"></div>
+
+  <!-- التقويم -->
+  <div id="calendarContainer" class="calendar-wrap" style="display:none">
+    <div class="cal-header">
+      <div class="cal-title" id="calTitle"></div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend" id="legend">
+      <div class="item"><span class="swatch period"></span><span id="lgPeriod">أيام الدورة</span></div>
+      <div class="item"><span class="swatch fertile"></span><span id="lgFertile">الأيام الأكثر خصوبة</span></div>
+      <div class="item"><span class="swatch ovul"></span><span id="lgOvul">يوم الإباضة</span></div>
+    </div>
+  </div>
+
+  <!-- سبب البحث والنصائح -->
+  <div id="reasonSection" aria-live="polite">
+    <p id="reasonQuestion" class="small-note"></p>
+    <button class="reason-btn conceive" onclick="showAdvice('conceive')"></button>
+    <button class="reason-btn" onclick="showAdvice('prevent')"></button>
+  </div>
+
+  <div id="adviceBox" aria-live="polite"></div>
+
+  <audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+
+<script>
+  const texts = {
+    ar:{title:"حاسبة التبويض",labelLastPeriod:"أول يوم من آخر دورة شهرية:",labelCycleLength:"طول الدورة الشهرية (بالأيام):",
+      btnCalculate:"احسبي الآن",error:"يرجى إدخال جميع البيانات بشكل صحيح.",
+      ovulation:"📅 تاريخ الإباضة:",fertileWindow:"🌸 الأيام الأكثر خصوبة:",
+      to:"إلى",regular:"دورة منتظمة",irregular:"دورة غير منتظمة",
+      reasonQuestion:"لماذا تبحثين عن أيام الإباضة؟",reasonConceive:"لزيادة فرص الحمل",reasonPrevent:"من أجل منع الحمل",
+      legend:{period:"أيام الدورة",fertile:"الأيام الأكثر خصوبة",ovul:"يوم الإباضة"},
+      nextPeriod:"🗓️ المتوقع لبداية الدورة القادمة:"
+    },
+    en:{title:"Ovulation Calculator",labelLastPeriod:"First day of last menstrual period:",
+      labelCycleLength:"Cycle length (days):",btnCalculate:"Calculate Now",
+      error:"Please enter all data correctly.",
+      ovulation:"📅 Ovulation Date:",fertileWindow:"🌸 Most Fertile Days:",
+      to:"to",regular:"Regular cycle",irregular:"Irregular cycle",
+      reasonQuestion:"Why are you checking ovulation days?",reasonConceive:"Increase chance of pregnancy",reasonPrevent:"Avoid pregnancy",
+      legend:{period:"Period days",fertile:"Most fertile days",ovul:"Ovulation day"},
+      nextPeriod:"🗓️ Expected start of next period:"
+    },
+    fr:{title:"Calculateur d'ovulation",labelLastPeriod:"Premier jour des dernières règles:",
+      labelCycleLength:"Durée du cycle (jours):",btnCalculate:"Calculer maintenant",
+      error:"Veuillez entrer toutes les données correctement.",
+      ovulation:"📅 Date d'ovulation:",fertileWindow:"🌸 Jours les plus fertiles:",
+      to:"au",regular:"Cycle régulier",irregular:"Cycle irrégulier",
+      reasonQuestion:"Pourquoi vérifiez-vous les jours d'ovulation ?",reasonConceive:"Augmenter les chances de grossesse",reasonPrevent:"Éviter une grossesse",
+      legend:{period:"Jours des règles",fertile:"Jours les plus fertiles",ovul:"Jour d'ovulation"},
+      nextPeriod:"🗓️ Début prévu des prochaines règles :"
+    }
+  };
+
+  const frenchMonthsInArabic=["جانفي","فيفري","مارس","أفريل","ماي","جوان","جويلية","أوت","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+  const monthNames={
+    en:["January","February","March","April","May","June","July","August","September","October","November","December"],
+    fr:["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
+  };
+  const weekdays={
+    ar:["ح","ن","ث","ر","خ","ج","س"], // أحد..سبت
+    en:["S","M","T","W","T","F","S"],
+    fr:["D","L","M","M","J","V","S"]
+  };
+
+  let currentLang='ar';
+
+  function changeLang(lang){
+    currentLang=lang;
+    document.body.dir = (lang==='ar')?'rtl':'ltr';
+    document.getElementById('title').innerText=texts[lang].title;
+    document.getElementById('labelLastPeriod').innerText=texts[lang].labelLastPeriod;
+    document.getElementById('labelCycleLength').innerText=texts[lang].labelCycleLength;
+    document.getElementById('btnCalculate').innerText=texts[lang].btnCalculate;
+    document.getElementById('reasonQuestion').innerText=texts[lang].reasonQuestion;
+    document.querySelector('.reason-btn.conceive').innerText=texts[lang].reasonConceive;
+    document.querySelector('.reason-btn:not(.conceive)').innerText=texts[lang].reasonPrevent;
+    // Legend texts
+    document.getElementById('lgPeriod').innerText=texts[lang].legend.period;
+    document.getElementById('lgFertile').innerText=texts[lang].legend.fertile;
+    document.getElementById('lgOvul').innerText=texts[lang].legend.ovul;
+
+    // reset outputs on language change
+    document.getElementById('result').innerText='';
+    document.getElementById('cycleNotification').style.display='none';
+    document.getElementById('reasonSection').style.display='none';
+    document.getElementById('adviceBox').style.display='none';
+    document.getElementById('calendarContainer').style.display='none';
+  }
+
+  function formatDate(date){
+    const d=date.getDate(), y=date.getFullYear();
+    if(currentLang==='ar'){
+      const m=frenchMonthsInArabic[date.getMonth()];
+      return `${d} ${m} ${y}`;
+    }else{
+      return date.toLocaleDateString(currentLang,{day:'numeric',month:'long',year:'numeric'});
+    }
+  }
+
+  // نصائح عشوائية لكل لغة وسبب
+  const advices={
+    ar:{
+      conceive:[
+        ["مارسي الجماع كل 1–2 يوم خلال الأيام الأكثر خصوبة.",
+         "اهتمي بحمض الفوليك وفيتامين D وحديد ضمن نظامك الغذائي.",
+         "خفّضي التوتر واحصلي على نوم كافٍ — يؤثر على الخصوبة.",
+         "راجعي الطبيب إذا تأخر الحمل أكثر من 12 شهرًا (6 أشهر إذا كان العمر>35)."],
+        ["راقبي علامات الإباضة (حرارة قاعدية/إفرازات شفافة).",
+         "تجنبي التدخين والكحول لتحسين جودة البويضات والحيوانات المنوية.",
+         "حافظي على وزن صحي؛ الوزن يؤثر على الإباضة."]
+      ],
+      prevent:[
+        ["تجنّبي الجماع في الأيام الأكثر خصوبة إذا لا ترغبين بالحمل.",
+         "استخدمي وسيلة فعّالة (حبوب/لولب/لاصقة/حقن) بالتشاور مع الطبيبة.",
+         "لا تعتمدي فقط على الحسابات الطبيعية إلا مع دورات منتظمة وسجلات دقيقة."],
+        ["استخدمي الواقي الذكري لحماية مزدوجة (الحمل/الأمراض المنقولة جنسيًا).",
+         "دوّني تواريخ دورتك لتقليل أخطاء الحساب.",
+         "فكّري بوسيلة احتياطية في فترات عدم الانتظام."]
+      ]
+    },
+    en:{
+      conceive:[
+        ["Have intercourse every 1–2 days during the fertile window.",
+         "Include folic acid, vitamin D and iron in your diet.",
+         "Reduce stress and sleep well — both affect fertility.",
+         "Consult a doctor if no pregnancy after 12 months (6 months if >35)."],
+        ["Track ovulation signs (BBT/cervical mucus).",
+         "Avoid smoking and excessive alcohol to improve egg/sperm quality.",
+         "Maintain a healthy weight; it influences ovulation."]
+      ],
+      prevent:[
+        ["Avoid intercourse on the most fertile days.",
+         "Use reliable contraception (pill, IUD, patch, injection) after medical advice.",
+         "Natural family planning requires regular cycles and precise tracking."],
+        ["Use condoms for dual protection (pregnancy & STIs).",
+         "Keep accurate cycle records to reduce calculation mistakes.",
+         "Consider a backup method during irregular cycles."]
+      ]
+    },
+    fr:{
+      conceive:[
+        ["Ayez des rapports tous les 1–2 jours pendant la période fertile.",
+         "Apportez acide folique, vitamine D et fer dans votre alimentation.",
+         "Réduisez le stress et dormez suffisamment — cela influence la fertilité.",
+         "Consultez un médecin si aucune grossesse après 12 mois (6 mois si >35 ans)."],
+        ["Suivez les signes d’ovulation (TB/ glaire cervicale).",
+         "Évitez tabac et alcool excessif pour une meilleure qualité ovocytaire/spermatique.",
+         "Maintenez un poids santé ; il influence l’ovulation."]
+      ],
+      prevent:[
+        ["Évitez les rapports les jours les plus fertiles.",
+         "Utilisez une contraception fiable (pilule, DIU, patch, injection) après avis médical.",
+         "La planification naturelle requiert des cycles réguliers et un suivi précis."],
+        ["Utilisez des préservatifs pour une double protection (grossesse & IST).",
+         "Notez vos cycles pour limiter les erreurs de calcul.",
+         "Prévoyez une méthode de secours en cas d’irrégularités."]
+      ]
+    }
+  };
+
+  function calculateOvulation(){
+    const lastPeriodInput=document.getElementById("lastPeriod").value;
+    const cycleLengthInput=document.getElementById("cycleLength").value;
+    const resultDiv=document.getElementById("result");
+    const notif=document.getElementById("cycleNotification");
+
+    const lpDate=new Date(lastPeriodInput);
+    const cycleLength=parseInt(cycleLengthInput,10);
+
+    if(!lastPeriodInput || isNaN(lpDate.getTime()) || isNaN(cycleLength)){
+      resultDiv.innerText=texts[currentLang].error;
+      notif.style.display="none";
+      document.getElementById('reasonSection').style.display='none';
+      document.getElementById('adviceBox').style.display='none';
+      document.getElementById('calendarContainer').style.display='none';
+      return;
+    }
+
+    // الحسابات الأساسية
+    const ovulationDay=new Date(lpDate);
+    ovulationDay.setDate(ovulationDay.getDate() + (cycleLength - 14));
+
+    const fertileStart=new Date(ovulationDay);
+    fertileStart.setDate(fertileStart.getDate()-5);
+
+    const fertileEnd=new Date(ovulationDay); // حتى يوم الإباضة (ضمنيًا)
+
+    const periodLength=5; // تقديري
+    const periodDays=[];
+    for(let i=0;i<periodLength;i++){
+      const d=new Date(lpDate);
+      d.setDate(d.getDate()+i);
+      periodDays.push(d);
+    }
+
+    const nextPeriod=new Date(lpDate);
+    nextPeriod.setDate(nextPeriod.getDate()+cycleLength);
+
+    // عرض النتائج: سطرين منفصلين
+    resultDiv.innerHTML = `
+      <div class="line">${texts[currentLang].ovulation}</div>
+      <div class="circle-date">${formatDate(ovulationDay)}</div>
+      <div class="line fertile-line" style="margin-top:10px;">${texts[currentLang].fertileWindow}
+        <strong>${formatDate(fertileStart)}</strong> ${texts[currentLang].to} <strong>${formatDate(fertileEnd)}</strong>
+      </div>
+      <div class="small-note" style="margin-top:10px;">${texts[currentLang].nextPeriod} <strong>${formatDate(nextPeriod)}</strong></div>
+    `;
+
+    // تنبيه نوع الدورة
+    if(cycleLength>=26 && cycleLength<=32){
+      notif.innerText=texts[currentLang].regular;
+      notif.style.backgroundColor="#d4edda";notif.style.color="#155724";
+    }else{
+      notif.innerText=texts[currentLang].irregular;
+      notif.style.backgroundColor="#f8d7da";notif.style.color="#721c24";
+    }
+    notif.style.display="block";
+
+    // التقويم: شهر يوم الإباضة
+    buildCalendar(ovulationDay, periodDays, fertileStart, fertileEnd, ovulationDay);
+
+    // إظهار سبب البحث
+    document.getElementById('reasonQuestion').innerText=texts[currentLang].reasonQuestion;
+    document.querySelector('.reason-btn.conceive').innerText=texts[currentLang].reasonConceive;
+    document.querySelector('.reason-btn:not(.conceive)').innerText=texts[currentLang].reasonPrevent;
+    document.getElementById('reasonSection').style.display='block';
+
+    // إخفاء نصيحة سابقة
+    document.getElementById('adviceBox').style.display='none';
+    document.getElementById('adviceBox').innerHTML='';
+
+    // إظهار التقويم والمفتاح
+    document.getElementById('calendarContainer').style.display='block';
+
+    document.getElementById("successSound").play();
+  }
+
+  function sameDay(a,b){
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  function inRange(date, start, end){
+    return date >= start && date <= end;
+  }
+
+  function buildCalendar(refDate, periodDays, fertileStart, fertileEnd, ovulationDay){
+    const year=refDate.getFullYear();
+    const month=refDate.getMonth();
+
+    const firstOfMonth=new Date(year,month,1);
+    const startDayIdx=firstOfMonth.getDay(); // 0 الأحد
+    const daysInMonth=new Date(year,month+1,0).getDate();
+
+    // عنوان التقويم
+    const calTitle=document.getElementById('calTitle');
+    if(currentLang==='ar'){
+      calTitle.textContent = `${frenchMonthsInArabic[month]} ${year}`;
+    }else{
+      const name = (currentLang==='en'?monthNames.en[month]:monthNames.fr[month]);
+      calTitle.textContent = `${name} ${year}`;
+    }
+
+    const grid=document.getElementById('calGrid');
+    grid.innerHTML='';
+
+    // صف أسماء الأيام
+    weekdays[currentLang].forEach(w=>{
+      const el=document.createElement('div');
+      el.className='dow';
+      el.textContent=w;
+      grid.appendChild(el);
+    });
+
+    // فراغات قبل اليوم 1
+    for(let i=0;i<startDayIdx;i++){
+      const ph=document.createElement('div');
+      ph.className='day muted';
+      ph.style.visibility='hidden';
+      grid.appendChild(ph);
+    }
+
+    // أيام الشهر
+    for(let d=1; d<=daysInMonth; d++){
+      const dt=new Date(year,month,d);
+      const cell=document.createElement('div');
+      cell.className='day';
+      cell.textContent=d;
+
+      // تلوين الفترة — الأولوية ليوم الإباضة، ثم خصوبة، ثم الدورة
+      if(sameDay(dt, ovulationDay)){
+        cell.classList.add('ovul');
+      }else if(inRange(dt, fertileStart, fertileEnd)){
+        cell.classList.add('fertile');
+      }
+      // تلوين أيام الدورة (لنفس الشهر فقط)
+      for(const pd of periodDays){
+        if(sameDay(dt,pd)) { cell.classList.remove('fertile'); cell.classList.add('period'); break; }
+      }
+
+      grid.appendChild(cell);
+    }
+
+    // تحديث نصوص الـ Legend حسب اللغة (تم أيضاً عند تغيير اللغة)
+    document.getElementById('lgPeriod').innerText=texts[currentLang].legend.period;
+    document.getElementById('lgFertile').innerText=texts[currentLang].legend.fertile;
+    document.getElementById('lgOvul').innerText=texts[currentLang].legend.ovul;
+  }
+
+  function showAdvice(type){
+    const listSets=advices[currentLang] && advices[currentLang][type];
+    if(!listSets) return;
+    const randomSet=listSets[Math.floor(Math.random()*listSets.length)];
+    let title='';
+    if(currentLang==='ar') title = (type==='conceive')?'نصائح لزيادة فرص الحمل:':'نصائح لمنع الحمل:';
+    else if(currentLang==='en') title = (type==='conceive')?'Tips to increase pregnancy chances:':'Tips to avoid pregnancy:';
+    else title = (type==='conceive')?'Conseils pour augmenter les chances de grossesse :':'Conseils pour éviter une grossesse :';
+
+    let html=`<strong>${title}</strong><ul>`;
+    randomSet.forEach(item=>{ html+=`<li>${item}</li>`; });
+    html+='</ul>';
+
+    const box=document.getElementById('adviceBox');
+    box.innerHTML=html;
+    box.style.display='block';
+  }
+
+  // الإعداد الابتدائي
+  changeLang('ar');
+</script>
+</body>
+</html>
